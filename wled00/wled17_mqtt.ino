@@ -69,6 +69,21 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
   } else parseMQTTBriPayload(payload);
 }
 
+void publishMqttPir(bool detected)
+{
+  if (mqtt == NULL) return;
+  if (!mqtt->connected()) return;
+  DEBUG_PRINTLN("Publish MQTT PIR");
+
+  char s[10];
+  char subuf[38];
+
+  sprintf(s, "%d", detected);
+  strcpy(subuf, mqttDeviceTopic);
+  strcat(subuf, "/pir");
+  mqtt->publish(subuf, 0, true, s);
+
+}
 
 void publishMqtt()
 {
