@@ -5,22 +5,69 @@
  * bytes 2400+ are currently ununsed, but might be used for future wled features
  */
 
-//Use userVar0 and userVar1 (API calls &U0=,&U1=, uint16_t)
+const int motionSensor = 14; // D5 on wemos d1 mini
 
-//gets called once at boot. Do all initialization that doesn't depend on network here
-void userSetup()
+int sensorState = LOW;
+int lastState = -1;
+
+long lastDebounceTimeHigh = 0;
+long lastDebounceTimeLow = 0;
+long beginTime = 0;
+long debounceDelayHigh = 100;
+long debounceDelayLow = 1000;
+
+
+void userBeginPreConnection()
 {
   
 }
 
-//gets called every time WiFi is (re-)connected. Initialize own network interfaces here
-void userConnected()
+void userBegin()
 {
-
+  // PIR Motion Sensor mode INPUT_PULLUP
+  pinMode(motionSensor, INPUT_PULLUP);
+  beginTime = millis();
+  DEBUG_PRINT("Motion PIR configured");
 }
 
-//loop. You can use "if (WLED_CONNECTED)" to check for successful connection
+
 void userLoop()
 {
-  
+  if (lastState == -1) {
+    if ((millis() - beginTime) > 2000) {
+      publishMqttPir(false);
+      lastState = LOW;
+    }
+  }
+  else {
+    // Get PIR state
+    sensorState = digitalRead(motionSensor);
+
+    if ( (sensorState == HIGH) ){
+      if(((millis() - lastDebounceTimeHigh) > debounceDelayHigh)) {
+        if (sensorState != lastState) {
+          DEBUG_PRINT("Motion started");
+          lastState = sensorState;
+          publishMqttPir(sensorState);
+        }
+      }
+    }
+    else {
+      lastDebounceTimeHigh = millis();
+    }
+
+
+    if ( (sensorState == LOW) ){
+      if (((millis() - lastDebounceTimeLow) > debounceDelayLow)) {
+        if (sensorState != lastState) {
+          DEBUG_PRINT("Motion stopped");
+          lastState = sensorState;
+          publishMqttPir(sensorState);
+        }
+      }
+    }
+    else {
+      lastDebounceTimeLow = millis();
+    }
+  }
 }
