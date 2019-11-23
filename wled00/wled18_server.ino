@@ -64,7 +64,7 @@ void initServer()
   
   server.on("/settings/wifi", HTTP_POST, [](AsyncWebServerRequest *request){
     if (!(wifiLock && otaLock)) handleSettingsSet(request, 1);
-    serveMessage(request, 200,"WiFi settings saved.","Reconnecting now...",255);
+    serveMessage(request, 200,"WiFi settings saved.","Reconnecting now...",129);
     forceReconnect = true;
   });
 
@@ -158,7 +158,7 @@ void initServer()
     },[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
       if(!index){
         DEBUG_PRINTLN("OTA Update Start");
-        #ifndef ARDUINO_ARCH_ESP32
+        #ifdef ESP8266
         Update.runAsync(true);
         #endif
         Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000);
@@ -312,7 +312,7 @@ String msgProcessor(const String& var)
 
 void serveMessage(AsyncWebServerRequest* request, uint16_t code, String headl, String subl="", byte optionT=255)
 {
-  #ifndef ARDUINO_ARCH_ESP32
+  #ifdef ESP8266
   char buf[256];
   obuf = buf;
   #endif

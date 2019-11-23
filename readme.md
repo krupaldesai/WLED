@@ -42,6 +42,12 @@ A fast and feature-rich implementation of an ESP8266/ESP32 webserver to control 
 
 See the [wiki](https://github.com/Aircoookie/WLED/wiki)!
 
+DrZzs has made some excellent video guides:  
+[Introduction, hardware and installation](https://www.youtube.com/watch?v=tXvtxwK3jRk)  
+[Settings, tips and tricks](https://www.youtube.com/watch?v=6eCE2BpLaUQ)  
+
+If you'd rather read, here is a very [detailed step-by-step beginner tutorial](https://tynick.com/blog/11-03-2019/getting-started-with-wled-on-esp8266/) by tynick!  
+
 ### Other
 
 Licensed under the MIT license  
@@ -52,3 +58,9 @@ Uses Linearicons by Perxis!
 Join the Discord [server](https://discord.gg/KuqP7NE) to discuss everything about WLED!  
 You can also send me mails to [dev.aircoookie@gmail.com](mailto:dev.aircoookie@gmail.com).  
 If WLED really brightens up your every day, you can [![](https://img.shields.io/badge/send%20me%20a%20small%20gift-paypal-blue.svg?style=flat-square)](https://paypal.me/aircoookie)
+
+*Disclaimer:*   
+If you are sensitive to photoeleptic seizures it is not recommended that you use this software.  
+In case you still want to try, don't use strobe, lighting or noise modes or high effect speed settings.
+As per the MIT license, i assume no liability for any damage to you or any other person or equipment.  
+

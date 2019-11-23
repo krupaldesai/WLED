@@ -84,7 +84,7 @@
 #define IS_REVERSE      ((SEGMENT.options & REVERSE )     == REVERSE     )
 #define IS_SELECTED     ((SEGMENT.options & SELECTED)     == SELECTED    )
 
-#define MODE_COUNT  83
+#define MODE_COUNT  84
 
 #define FX_MODE_STATIC                   0
 #define FX_MODE_BLINK                    1
@@ -170,6 +170,7 @@
 #define FX_MODE_TWINKLEFOX              80
 #define FX_MODE_TWINKLECAT              81
 #define FX_MODE_HALLOWEEN_EYES          82
+#define FX_MODE_STATIC_PATTERN          83
 
 
 class WS2812FX {
@@ -308,6 +309,8 @@ class WS2812FX {
       _mode[FX_MODE_TWINKLEFOX]              = &WS2812FX::mode_twinklefox;
       _mode[FX_MODE_TWINKLECAT]              = &WS2812FX::mode_twinklecat;
       _mode[FX_MODE_HALLOWEEN_EYES]          = &WS2812FX::mode_halloween_eyes;
+      _mode[FX_MODE_STATIC_PATTERN]          = &WS2812FX::mode_static_pattern;
+      
 
       _brightness = DEFAULT_BRIGHTNESS;
       currentPalette = CRGBPalette16(CRGB::Black);
@@ -363,6 +366,7 @@ class WS2812FX {
       paletteFade = 0,
       paletteBlend = 0,
       colorOrder = 0,
+      milliampsPerLed = 55,
       getBrightness(void),
       getMode(void),
       getSpeed(void),
@@ -384,6 +388,7 @@ class WS2812FX {
       color_from_palette(uint16_t, bool, bool, uint8_t, uint8_t pbri = 255),
       color_blend(uint32_t,uint32_t,uint8_t),
       gamma32(uint32_t),
+      getLastShow(void),
       getPixelColor(uint16_t),
       getColor(void);
 
@@ -481,7 +486,8 @@ class WS2812FX {
       mode_ripple(void),
       mode_twinklefox(void),
       mode_twinklecat(void),
-      mode_halloween_eyes(void);
+      mode_halloween_eyes(void),
+      mode_static_pattern(void);
 
   private:
     NeoPixelWrapper *bus;
@@ -552,7 +558,7 @@ const char JSON_mode_names[] PROGMEM = R"=====([
 "Out Out","Out In","Circus","Halloween","Tri Chase","Tri Wipe","Tri Fade","Lightning","ICU","Multi Comet",
 "Dual Scanner","Stream 2","Oscillate","Pride 2015","Juggle","Palette","Fire 2012","Colorwaves","BPM","Fill Noise",
 "Noise 1","Noise 2","Noise 3","Noise 4","Colortwinkles","Lake","Meteor","Smooth Meteor","Railway","Ripple",
-"Twinklefox","Twinklecat","Halloween Eyes"
+"Twinklefox","Twinklecat","Halloween Eyes","Solid Pattern"
 ])=====";
 
 

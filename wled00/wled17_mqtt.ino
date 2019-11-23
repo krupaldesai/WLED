@@ -19,7 +19,6 @@ void onMqttConnect(bool sessionPresent)
 {
   //(re)subscribe to required topics
   char subuf[38];
-  strcpy(subuf, mqttDeviceTopic);
 
   if (mqttDeviceTopic[0] != 0)
   {
@@ -99,10 +98,14 @@ void publishMqtt()
   strcat(subuf, "/g");
   mqtt->publish(subuf, 0, true, s);
 
-  sprintf(s, "#%06X", col[3]*16777216 + col[0]*65536 + col[1]*256 + col[2]);
+  sprintf(s, "#%06X", (col[3] << 24) | (col[0] << 16) | (col[1] << 8) | (col[2]));
   strcpy(subuf, mqttDeviceTopic);
   strcat(subuf, "/c");
   mqtt->publish(subuf, 0, true, s);
+
+  strcpy(subuf, mqttDeviceTopic);
+  strcat(subuf, "/status");
+  mqtt->publish(subuf, 0, true, "online");
 
   char apires[1024];
   XML_response(nullptr, false, apires);
@@ -258,6 +261,10 @@ bool initMqtt()
   }
   mqtt->setClientId(mqttClientID);
   if (mqttUser[0] && mqttPass[0]) mqtt->setCredentials(mqttUser, mqttPass);
+
+  strcpy(mqttStatusTopic, mqttDeviceTopic);
+  strcat(mqttStatusTopic, "/status");
+  mqtt->setWill(mqttStatusTopic, 0, true, "offline");
   mqtt->connect();
   return true;
 }

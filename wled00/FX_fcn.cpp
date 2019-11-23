@@ -76,7 +76,6 @@ void WS2812FX::service() {
   if(doShow) {
     yield();
     show();
-    _lastShow = millis();
   }
   _triggered = false;
 }
@@ -100,7 +99,7 @@ void WS2812FX::setPixelColor(uint16_t n, uint32_t c) {
 void WS2812FX::setPixelColor(uint16_t i, byte r, byte g, byte b, byte w)
 {
   if (_locked[i] && !_modeUsesLock) return;
-  if (IS_REVERSE)   i = SEGMENT.stop -1 -i - SEGMENT.start; //reverse just individual segment
+  if (IS_REVERSE)   i = SEGMENT.stop -1 -i + SEGMENT.start; //reverse just individual segment
   byte tmpg = g;
   switch (colorOrder) //0 = Grb, default
   {
@@ -183,11 +182,7 @@ void WS2812FX::setCronixieDigits(byte d[])
 //Stay safe with high amperage and have a reasonable safety margin!
 //I am NOT to be held liable for burned down garages!
 
-//fine tune power estimation constants for your setup
-#define PU_PER_MA        3600 //power units per milliamperere for accurate power estimation 
-                              //formula: 195075 divided by mA per fully lit LED, here ~54mA)
-                              //lowering the value increases the estimated usage and therefore makes the ABL more aggressive
-                              
+//fine tune power estimation constants for your setup                  
 #define MA_FOR_ESP        100 //how much mA does the ESP use (Wemos D1 about 80mA, ESP32 about 120mA)
                               //you can set it to 0 if the ESP is powered by USB and the LEDs by external
 
@@ -197,12 +192,13 @@ void WS2812FX::show(void) {
   //one PU is the power it takes to have 1 channel 1 step brighter per brightness step
   //so A=2,R=255,G=0,B=0 would use 510 PU per LED (1mA is about 3700 PU)
   
-  if (ablMilliampsMax > 149 && ablMilliampsMax < 65000) //lower numbers and 65000 turn off calculation
+  if (ablMilliampsMax > 149 && milliampsPerLed > 0) //0 mA per LED and too low numbers turn off calculation
   {
-    uint32_t powerBudget = (ablMilliampsMax - MA_FOR_ESP) * PU_PER_MA; //100mA for ESP power
-    if (powerBudget > PU_PER_MA * _length) //each LED uses about 1mA in standby, exclude that from power budget
+    uint32_t puPerMilliamp = 195075 / milliampsPerLed;
+    uint32_t powerBudget = (ablMilliampsMax - MA_FOR_ESP) * puPerMilliamp; //100mA for ESP power
+    if (powerBudget > puPerMilliamp * _length) //each LED uses about 1mA in standby, exclude that from power budget
     {
-      powerBudget -= PU_PER_MA * _length;
+      powerBudget -= puPerMilliamp * _length;
     } else
     {
       powerBudget = 0;
@@ -232,10 +228,10 @@ void WS2812FX::show(void) {
       uint8_t scaleB = (scaleI > 255) ? 255 : scaleI;
       uint8_t newBri = scale8(_brightness, scaleB);
       bus->SetBrightness(newBri);
-      currentMilliamps = (powerSum0 * newBri) / PU_PER_MA;
+      currentMilliamps = (powerSum0 * newBri) / puPerMilliamp;
     } else
     {
-      currentMilliamps = powerSum / PU_PER_MA;
+      currentMilliamps = powerSum / puPerMilliamp;
       bus->SetBrightness(_brightness);
     }
     currentMilliamps += MA_FOR_ESP; //add power of ESP back to estimate
@@ -246,6 +242,7 @@ void WS2812FX::show(void) {
   }
   
   bus->Show();
+  _lastShow = millis();
 }
 
 void WS2812FX::trigger() {
@@ -395,7 +392,7 @@ uint32_t WS2812FX::getColor(void) {
 uint32_t WS2812FX::getPixelColor(uint16_t i)
 {
   if (reverseMode) i = _length- 1 -i;
-  if (IS_REVERSE)   i = SEGMENT.stop -1 -i - SEGMENT.start; //reverse just individual segment
+  if (IS_REVERSE)   i = SEGMENT.stop -1 -i + SEGMENT.start; //reverse just individual segment
   if (_skipFirstMode) i += LED_SKIP_AMOUNT;
   if (_cronixieMode)
   {
@@ -441,6 +438,10 @@ WS2812FX::Segment* WS2812FX::getSegments(void) {
   return _segments;
 }
 
+uint32_t WS2812FX::getLastShow(void) {
+  return _lastShow;
+}
+
 void WS2812FX::setSegment(uint8_t n, uint16_t i1, uint16_t i2) {
   if (n >= MAX_NUM_SEGMENTS) return;
   Segment& seg = _segments[n];
@@ -451,6 +452,7 @@ void WS2812FX::setSegment(uint8_t n, uint16_t i1, uint16_t i2) {
     unlockRange(seg.start, seg.stop);
     _modeUsesLock = true;
   }
+  _segment_index = n; fill(0); //turn old segment range off
   if (i2 <= i1) //disable segment
   {
     seg.stop = 0; return;

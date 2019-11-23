@@ -3,7 +3,7 @@
  */
 /*
  * @title WLED project sketch
- * @version 0.8.6
+ * @version 0.8.7-dev
  * @author Christian Schwinne
  */
 
@@ -55,7 +55,6 @@
  #include <ArduinoOTA.h>
 #endif
 #include <SPIFFSEditor.h>
-#include "src/dependencies/time/Time.h"
 #include "src/dependencies/time/TimeLib.h"
 #include "src/dependencies/timezone/Timezone.h"
 #ifndef WLED_DISABLE_ALEXA
@@ -68,7 +67,7 @@
 #ifndef WLED_DISABLE_BLYNK
  #include "src/dependencies/blynk/BlynkSimpleEsp.h"
 #endif
-#include "src/dependencies/e131/E131.h"
+#include "src/dependencies/e131/ESPAsyncE131.h"
 #include "src/dependencies/async-mqtt-client/AsyncMqttClient.h"
 #include "src/dependencies/json/AsyncJson-v6.h"
 #include "src/dependencies/json/ArduinoJson-v6.h"
@@ -100,8 +99,8 @@
 
 
 //version code in format yymmddb (b = daily build)
-#define VERSION 1910293
-char versionString[] = "0.8.6";
+#define VERSION 1911211
+char versionString[] = "0.8.7-dev";
 
 
 //AP and OTA default passwords (for maximum change them!)
@@ -197,8 +196,7 @@ bool receiveDirect    =  true;                //receive UDP realtime
 bool arlsDisableGammaCorrection = true;       //activate if gamma correction is handled by the source
 bool arlsForceMaxBri = false;                 //enable to force max brightness if source has very dark colors that would be black
 
-bool e131Enabled = true;                      //settings for E1.31 (sACN) protocol
-uint16_t e131Universe = 1;
+uint16_t e131Universe = 1;                    //settings for E1.31 (sACN) protocol
 bool e131Multicast = false;
 
 char mqttDeviceTopic[33] = "";                //main MQTT topic (individual per device, default is wled/mac)
@@ -386,6 +384,7 @@ unsigned long realtimeTimeout = 0;
 long lastMqttReconnectAttempt = 0;
 long lastInterfaceUpdate = 0;
 byte interfaceUpdateCallMode = 0;
+char mqttStatusTopic[40] = ""; //this must be global because of async handlers
 
 #if AUXPIN >= 0
 //auxiliary debug pin
@@ -433,10 +432,17 @@ AsyncWebServer server(80);
 AsyncClient* hueClient = NULL;
 AsyncMqttClient* mqtt = NULL;
 
+//function prototypes
+void serveMessage(AsyncWebServerRequest*,uint16_t,String,String,byte);
+void handleE131Packet(e131_packet_t*, IPAddress);
+
+#define E131_MAX_UNIVERSE_COUNT 7
+
 //udp interface objects
 WiFiUDP notifierUdp, rgbUdp;
 WiFiUDP ntpUdp;
-E131* e131;
+ESPAsyncE131 e131(handleE131Packet);
+bool e131NewData = false;
 
 //led fx library object
 WS2812FX strip = WS2812FX();
@@ -467,11 +473,6 @@ WS2812FX strip = WS2812FX();
  #endif
  #include "SPIFFSEditor.h"
 #endif
-
-
-//function prototypes
-void serveMessage(AsyncWebServerRequest*,uint16_t,String,String,byte);
-
 
 //turns all LEDs off and restarts ESP
 void reset()

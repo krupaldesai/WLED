@@ -7,7 +7,7 @@ void wledInit()
   EEPROM.begin(EEPSIZE);
   ledCount = EEPROM.read(229) + ((EEPROM.read(398) << 8) & 0xFF00);
   if (ledCount > MAX_LEDS || ledCount == 0) ledCount = 30;
-  #ifndef ARDUINO_ARCH_ESP32
+  #ifdef ESP8266
   #if LEDPIN == 3
   if (ledCount > MAX_LEDS_DMA) ledCount = MAX_LEDS_DMA; //DMA method uses too much ram
   #endif
@@ -152,7 +152,7 @@ void initConnection()
 {
   WiFi.disconnect(); //close old connections
 
-  if (staticIP[0] != 0)
+  if (staticIP[0] != 0 && staticGateway[0] != 0)
   {
     WiFi.config(staticIP, staticGateway, staticSubnet, IPAddress(8,8,8,8));
   } else
@@ -230,7 +230,7 @@ void initInterfaces() {
   if (ntpEnabled) ntpConnected = ntpUdp.begin(ntpLocalPort);
 
   initBlynk(blynkApiKey);
-  initE131();
+  Serial.println(e131.begin((e131Multicast) ? E131_MULTICAST : E131_UNICAST , e131Universe, E131_MAX_UNIVERSE_COUNT));
   reconnectHue();
   initMqtt();
   interfacesInited = true;
