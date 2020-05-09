@@ -33,7 +33,7 @@
  #ifdef USE_APA102
   #define PIXELMETHOD DotStarMethod
  #elif LEDPIN == 2
-  #define PIXELMETHOD NeoEsp8266Uart1Ws2813Method //if you get an error here, try to change to NeoEsp8266UartWs2813Method or update Neopixelbus
+  #define PIXELMETHOD NeoEsp8266UartWs2813Method //if you get an error here, try to change to NeoEsp8266UartWs2813Method or update Neopixelbus
  #elif LEDPIN == 3
   #define PIXELMETHOD NeoEsp8266Dma800KbpsMethod
  #else

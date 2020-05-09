@@ -17,19 +17,23 @@ long debounceDelayHigh = 100;
 long debounceDelayLow = 1000;
 
 
-void userBeginPreConnection()
-{
-  
-}
 
-void userBegin()
+void userSetup()
 {
   // PIR Motion Sensor mode INPUT_PULLUP
   pinMode(motionSensor, INPUT_PULLUP);
-  beginTime = millis();
+  //beginTime = millis();
   DEBUG_PRINT("Motion PIR configured");
 }
 
+
+//gets called every time WiFi is (re-)connected. Initialize own network interfaces here
+void userConnected()
+{
+  beginTime = millis();
+  publishMqttPir(false);
+  DEBUG_PRINT("Motion PIR WiFi connected");
+}
 
 void userLoop()
 {
