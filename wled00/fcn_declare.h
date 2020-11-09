@@ -21,6 +21,7 @@ void updateBlynk();
 
 //button.cpp
 void shortPressAction();
+bool isButtonPressed();
 void handleButton();
 void handleIO();
 
@@ -29,6 +30,7 @@ void colorFromUint32(uint32_t in, bool secondary = false);
 void colorFromUint24(uint32_t in, bool secondary = false);
 void relativeChangeWhite(int8_t amount, byte lowerBoundary = 0);
 void colorHStoRGB(uint16_t hue, byte sat, byte* rgb); //hue, sat to rgb
+void colorKtoRGB(uint16_t kelvin, byte* rgb);
 void colorCTtoRGB(uint16_t mired, byte* rgb); //white spectrum to rgb
 
 void colorXYtoRGB(float x, float y, byte* rgb); // only defined if huesync disabled TODO
@@ -42,7 +44,7 @@ void initDMX();
 void handleDMX();
 
 //e131.cpp
-void handleE131Packet(e131_packet_t* p, IPAddress clientIP, bool isArtnet);
+void handleE131Packet(e131_packet_t* p, IPAddress clientIP, byte protocol);
 
 //file.cpp
 bool handleFileRead(AsyncWebServerRequest*, String path);
@@ -57,8 +59,10 @@ void onHueData(void* arg, AsyncClient* client, void *data, size_t len);
 
 //ir.cpp
 bool decodeIRCustom(uint32_t code);
+void applyRepeatActions();
 void relativeChange(byte* property, int8_t amount, byte lowerBoundary = 0, byte higherBoundary = 0xFF);
 void changeEffectSpeed(int8_t amount);
+void changeBrightness(int8_t amount);
 void changeEffectIntensity(int8_t amount);
 void decodeIR(uint32_t code);
 void decodeIR24(uint32_t code);
@@ -68,6 +72,7 @@ void decodeIR40(uint32_t code);
 void decodeIR44(uint32_t code);
 void decodeIR21(uint32_t code);
 void decodeIR6(uint32_t code);
+void decodeIR9(uint32_t code);
 
 void initIR();
 void handleIR();
@@ -77,7 +82,6 @@ void handleIR();
 #include "src/dependencies/json/ArduinoJson-v6.h"
 #include "src/dependencies/json/AsyncJson-v6.h"
 #include "FX.h"
-// TODO: AsynicWebServerRequest conflict?
 
 void deserializeSegment(JsonObject elem, byte it);
 bool deserializeState(JsonObject root);
@@ -85,7 +89,7 @@ void serializeSegment(JsonObject& root, WS2812FX::Segment& seg, byte id);
 void serializeState(JsonObject root);
 void serializeInfo(JsonObject root);
 void serveJson(AsyncWebServerRequest* request);
-void serveLiveLeds(AsyncWebServerRequest* request);
+bool serveLiveLeds(AsyncWebServerRequest* request, uint32_t wsClient = 0);
 
 //led.cpp
 void setValuesFromMainSeg();
@@ -98,6 +102,11 @@ void colorUpdated(int callMode);
 void updateInterfaces(uint8_t callMode);
 void handleTransitions();
 void handleNightlight();
+byte scaledBri(byte in);
+
+//lx_parser.cpp
+bool parseLx(int lxValue, byte* rgbw);
+void parseLxJson(int lxValue, byte segId, bool secondary);
 
 //mqtt.cpp
 bool initMqtt();
@@ -140,6 +149,40 @@ void realtimeLock(uint32_t timeoutMs, byte md = REALTIME_MODE_GENERIC);
 void handleNotifications();
 void setRealtimePixel(uint16_t i, byte r, byte g, byte b, byte w);
 
+//um_manager.cpp
+class Usermod {
+  public:
+    virtual void loop() {}
+    virtual void setup() {}
+    virtual void connected() {}
+    virtual void addToJsonState(JsonObject& obj) {}
+    virtual void addToJsonInfo(JsonObject& obj) {}
+    virtual void readFromJsonState(JsonObject& obj) {}
+    virtual uint16_t getId() {return USERMOD_ID_UNSPECIFIED;}
+};
+
+class UsermodManager {
+  private:
+    Usermod* ums[WLED_MAX_USERMODS];
+    byte numMods = 0;
+
+  public:
+    void loop();
+
+    void setup();
+    void connected();
+
+    void addToJsonState(JsonObject& obj);
+    void addToJsonInfo(JsonObject& obj);
+    void readFromJsonState(JsonObject& obj);
+
+    bool add(Usermod* um);
+    byte getModCount();
+};
+
+//usermods_list.cpp
+void registerUsermods();
+
 //usermod.cpp
 void userSetup();
 void userConnected();
@@ -157,7 +200,7 @@ bool applyPreset(byte index, bool loadBri = true);
 void savePreset(byte index, bool persist = true);
 void loadMacro(byte index, char* m);
 void applyMacro(byte index);
-void saveMacro(byte index, String mc, bool persist = true); //only commit on single save, not in settings
+void saveMacro(byte index, const String& mc, bool persist = true); //only commit on single save, not in settings
 
 //wled_serial.cpp
 void handleSerial();
@@ -169,14 +212,19 @@ void initServer();
 void serveIndexOrWelcome(AsyncWebServerRequest *request);
 void serveIndex(AsyncWebServerRequest* request);
 String msgProcessor(const String& var);
-void serveMessage(AsyncWebServerRequest* request, uint16_t code, String headl, String subl="", byte optionT=255);
+void serveMessage(AsyncWebServerRequest* request, uint16_t code, const String& headl, const String& subl="", byte optionT=255);
 String settingsProcessor(const String& var);
 String dmxProcessor(const String& var);
-void serveSettings(AsyncWebServerRequest* request);
+void serveSettings(AsyncWebServerRequest* request, bool post = false);
+
+//ws.cpp
+void handleWs();
+void wsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len);
+void sendDataWs(AsyncWebSocketClient * client = nullptr);
 
 //xml.cpp
-char* XML_response(AsyncWebServerRequest *request, char* dest = nullptr);
-char* URL_response(AsyncWebServerRequest *request);
+void XML_response(AsyncWebServerRequest *request, char* dest = nullptr);
+void URL_response(AsyncWebServerRequest *request);
 void sappend(char stype, const char* key, int val);
 void sappends(char stype, const char* key, char* val);
 void getSettingsJS(byte subPage, char* dest);
